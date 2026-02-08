@@ -1,0 +1,37 @@
+name: Dispatch v5 Docker Release
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  trigger-release-docker:
+    if: startsWith(github.event.release.tag_name, 'v5.')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger release-docker workflow for ${{ github.event.release.tag_name }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tag = context.payload.release.tag_name;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: 'release-docker.yaml',
+              ref: 'main',
+              inputs: {
+                BUILD_FROM_BRANCH: 'false',
+                RELEASE_TAG: tag,
+                PUSH_IMAGE: 'true'
+              }
+            });
+            core.info(`Dispatched release-docker workflow for ${tag}`);
